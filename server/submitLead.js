@@ -12,10 +12,6 @@ import {
 
 const DESK_URL = process.env.DESK_URL || "https://deskbackend.getnos.io/v1/lead";
 const DESK_API_KEY = process.env.DESK_API_KEY || "";
-const ZYGN_WEBHOOK_URL =
-  process.env.ZYGN_WEBHOOK_URL ||
-  "https://backend.zygn.app/api/webhook/websiteIntegration/94dfa8ee-3f08-428f-afee-3a7208302969";
-const ZYGN_TOKEN = process.env.ZYGN_TOKEN || "";
 
 function field(obj, keys) {
   for (const key of keys) {
@@ -50,12 +46,6 @@ function formatSubmittedAt() {
     minute: "2-digit",
     hour12: true,
   }).format(new Date());
-}
-
-function cleanPhoneForZygn(mobile) {
-  let digits = String(mobile).replace(/\D/g, "");
-  if (digits.length > 10) digits = digits.slice(-10);
-  return `91${digits}`;
 }
 
 export function parseLeadBody(body) {
@@ -124,18 +114,7 @@ export function parseLeadBody(body) {
     deskFields.tool_other = toolOther;
   }
 
-  return {
-    deskFields,
-    zygnPayload: {
-      authToken: ZYGN_TOKEN,
-      fieldData: [
-        { name: "email", value: email },
-        { name: "fullname", value: fullName },
-        { name: "contactNo", value: cleanPhoneForZygn(mobile) },
-        { name: "address", value: studioCity || "Bengaluru" },
-      ],
-    },
-  };
+  return { deskFields };
 }
 
 async function submitToDesk(deskFields) {
@@ -170,33 +149,16 @@ async function submitToDesk(deskFields) {
   return { desk: data, duplicate: false };
 }
 
-async function submitToZygn(zygnPayload) {
-  if (!ZYGN_TOKEN) return { zygnStatus: 0, skipped: true };
-
-  const res = await fetch(ZYGN_WEBHOOK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(zygnPayload),
-    signal: AbortSignal.timeout(10_000),
-  });
-
-  return { zygnStatus: res.status, skipped: false };
-}
-
 export async function handleLeadSubmission(body) {
   const parsed = parseLeadBody(body);
   if (parsed.error) return parsed.error;
 
-  const { deskFields, zygnPayload } = parsed;
-
-  const deskResult = await submitToDesk(deskFields);
-  const zygnResult = await submitToZygn(zygnPayload);
+  const deskResult = await submitToDesk(parsed.deskFields);
 
   return {
     status: "success",
     message: deskResult.duplicate ? "Lead accepted (duplicate)" : "Submitted",
     leadId: deskResult.desk.leadId,
     duplicate: deskResult.duplicate || false,
-    webhook_http: zygnResult.zygnStatus,
   };
 }
