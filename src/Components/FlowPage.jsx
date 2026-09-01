@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Logo from "../assets/logo.png";
+import { submitFlowLead } from "../api/submitLead.js";
 
 // ─── CSS ────────────────────────────────────────────────────────────────────
 const css = `
@@ -462,17 +463,9 @@ export default function ZygnQuestionnaire() {
     };
 
     try {
-      const response = await fetch("https://getnos.io/zygn-audit-flow/php/main.php", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submissionData),
-      });
+      const data = await submitFlowLead(submissionData);
 
-      const data = await response.json();
-
-      if (response.ok && data.status) {
+      if (data.duplicate || data.status === "success") {
         return true;
       }
 
