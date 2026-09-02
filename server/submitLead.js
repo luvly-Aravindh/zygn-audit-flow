@@ -102,7 +102,7 @@ export function parseLeadBody(body) {
     form_type: formType,
     landing_page: page || "Not provided",
     submitted_at: formatSubmittedAt(),
-    subject: `Zygn Flow Form Submission - ${fullName}`,
+    subject: "zygn audit flow form",
   };
 
   if (tools === "software" && toolOther) {
